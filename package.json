@@ -1,0 +1,22 @@
+{
+  "name": "mc-sein",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.1",
+    "cors": "^2.7.1",
+    "express": "^4.13.4",
+    "express-busboy": "^2.5.0",
+    "mailin": "^3.0.3",
+    "minimist": "^1.2.0",
+    "mongodb": "^2.1.18",
+    "promise": "^7.1.1",
+    "ws": "^1.1.1"
+  }
+}
