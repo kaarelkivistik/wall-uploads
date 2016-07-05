@@ -1,5 +1,7 @@
 FROM node:6.2.2
 
+ENV NPM_CONFIG_LOGLEVEL=error
+
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
