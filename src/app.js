@@ -144,3 +144,18 @@ function persistAttachment(attachment, content) {
 
 	return generatedFileName;
 }
+
+/* Misc */
+
+function exitOnSignal(signal) {
+	process.on(signal, function() {
+		console.log("Shutting down.. (%s)", signal);
+		
+		db.close();
+		
+		process.exit(0);
+	});
+}
+
+exitOnSignal("SIGTERM");
+exitOnSignal("SIGINT");
