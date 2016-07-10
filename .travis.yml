@@ -1,7 +1,7 @@
 sudo: required
 
 env:
-  - REPO=wall-uploads GIT_TAG=$(git tag)
+  - REPO=wall-uploads GIT_TAG=$(git describe)
 
 services:
   - docker
