@@ -53,7 +53,8 @@ function errorHandler(err, req, res, next) {
 	console.error("error!", err.message);
 
 	res.status(500).send({
-		error: err.message
+		error: err.message,
+		stack: err.stack
 	});
 }
 
@@ -76,7 +77,12 @@ MongoClient.connect(dbUrl).then(result => {
 });
 
 api.get("/", (req, res) => {
-	getUploads().then(result => {
+	const { startingFrom: rawStartingFrom, limit: rawLimit } = req.query;
+
+	const startingFrom = rawStartingFrom ? new Date(rawStartingFrom) : undefined;
+	const limit = parseInt(rawLimit);
+
+	getUploads(startingFrom, limit).then(result => {
 		res.send(result);
 	}, throwError);
 });
@@ -104,7 +110,8 @@ function persistUpload(body) {
 		});
 
 		const upload = {
-			subject, text, html, from, to, attachments
+			subject, text, html, from, to, attachments,
+			timestamp: new Date()
 		};
 
 		uploads.insert(upload).then(result => {
@@ -115,9 +122,16 @@ function persistUpload(body) {
 	});
 }
 
-function getUploads() {
+function getUploads(startingFrom, limit = 3) {
+	let query = {};
+
+	if(startingFrom)
+		query.timestamp = {
+			$gt: startingFrom
+		};
+
 	return new Promise((resolve, reject) => {
-		uploads.find().toArray().then(resolve, reject);
+		uploads.find(query).limit(limit).toArray().then(resolve, reject);
 	});
 }
 
