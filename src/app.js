@@ -161,7 +161,7 @@ function getUploads(startingFrom, limit = 3) {
 }
 
 function notifyClients(upload) {
-	log("Notifying %s client(s)", clients.size());
+	log("Notifying %s client(s)", clients.size);
 
 	for(let client of clients)
 		client.send(JSON.stringify(upload))
