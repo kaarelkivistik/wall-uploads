@@ -127,7 +127,7 @@ function getUploads(startingFrom, limit = 3) {
 
 	if(startingFrom)
 		query.timestamp = {
-			$gt: startingFrom
+			$lt: startingFrom
 		};
 
 	return new Promise((resolve, reject) => {
