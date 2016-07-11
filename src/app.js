@@ -1,6 +1,6 @@
 const { createServer } = require("http");
 const { createHash } = require("crypto");
-const { writeFileSync } = require("fs");
+const { writeFileSync, mkdirSync, lstatSync } = require("fs");
 const { extname, join } = require("path");
 const Promise = require("promise");
 const express = require("express");
@@ -33,6 +33,22 @@ const api = express();
 
 server.on("request", api);
 
+/* Storage */
+
+try {
+	lstatSync(storagePath);
+} catch(e) {
+	log("Storage directory (%s) does not exist, creating", storagePath);
+
+	try {
+		mkdirSync(storagePath);
+	} catch(e2) {
+		log("Unable to create storage directory - exiting.");
+
+		process.exit(1);
+	}
+}
+
 /* WebSocketServer configuration */
 
 wss.on("connection", socket => {
@@ -50,7 +66,7 @@ function throwError(message) {
 }
 
 function errorHandler(err, req, res, next) {
-	console.error("error!", err.message);
+	log("There was an error:", err);
 
 	res.status(500).send({
 		error: err.message,
@@ -88,6 +104,8 @@ api.get("/", (req, res) => {
 });
 
 api.post("/", (req, res) => {
+	log("Received mail..");
+
 	persistUpload(req.body).then(notifyClients, throwError);
 
 	res.end();
@@ -98,6 +116,8 @@ api.use(errorHandler);
 /* Service layer */
 
 function persistUpload(body) {
+	log("Persisting upload..");
+
 	return new Promise((resolve, reject) => {
 		const { mailinMsg } = body;
 		const parsedMessage = JSON.parse(mailinMsg);
@@ -114,7 +134,12 @@ function persistUpload(body) {
 			timestamp: new Date()
 		};
 
+		log("Saving email to MongoDB..");
+		log(upload);
+
 		uploads.insert(upload).then(result => {
+			log("Saved!")
+
 			resolve(upload);
 		}, error => {
 			reject(error);
@@ -136,6 +161,8 @@ function getUploads(startingFrom, limit = 3) {
 }
 
 function notifyClients(upload) {
+	log("Notifying %s client(s)", clients.size());
+
 	for(let client of clients)
 		client.send(JSON.stringify(upload))
 }
@@ -144,22 +171,32 @@ function persistAttachment(attachment, content) {
 	const { checksum, fileName } = attachment;
 
 	const buffer = Buffer.from(content, "base64");
-	const extension = extname(fileName);
+	const extension = extname(fileName).substr(1).toLowerCase();
 
-	if(extension.length < 2)
+	if(extension.length < 2 || !allowedFormats[extension]) {
+		log("Discarding %s", fileName);
 		return null;
+	}
 
-	if(!allowedFormats[extension.substr(1)])
-		return null;
+	const generatedFileName = checksum + "." + extension;
 
-	const generatedFileName = checksum + extension;
+	log("Writing attachment to %s", generatedFileName);
+	try {
+		writeFileSync(join(storagePath, generatedFileName), buffer);
+	} catch(e) {
+		log("There was an error writing file:", e);
+	}
 
-	writeFileSync(join(storagePath, generatedFileName), buffer);
+	log("%s written!", generatedFileName);
 
 	return generatedFileName;
 }
 
 /* Misc */
+
+function log() {
+	console.log.apply(console, arguments);
+}
 
 function exitOnSignal(signal) {
 	process.on(signal, function() {
