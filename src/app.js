@@ -8,6 +8,19 @@ const { MongoClient } = require("mongodb");
 const busboy = require("express-busboy");
 const cors = require("cors");
 const { Server: WebSocketServer } = require("ws");
+const mailin = require("mailin");
+
+/* Mailin */
+
+mailin.start({
+  port: 2500,
+  disableWebhook: true // Disable the webhook posting.
+});
+
+/* Event emitted after a message was received and parsed. */
+mailin.on('message', function (connection, data, content) {
+  persistUpload(data);
+});
 
 /* App configuration */
 
@@ -103,28 +116,18 @@ api.get("/", (req, res) => {
 	}, throwError);
 });
 
-api.post("/", (req, res) => {
-	log("Received mail..");
-
-	persistUpload(req.body).then(notifyClients, throwError);
-
-	res.end();
-});
-
 api.use(errorHandler);
 
 /* Service layer */
 
-function persistUpload(body) {
+function persistUpload(mail) {
 	log("Persisting upload..");
 
 	return new Promise((resolve, reject) => {
-		const { mailinMsg } = body;
-		const parsedMessage = JSON.parse(mailinMsg);
-		const { subject, text, html, from, to, attachments: originalAttachments } = parsedMessage;
+		const { subject, text, html, from, to, attachments: originalAttachments } = mail;
 
 		const attachments = originalAttachments.map(attachment => {
-			return persistAttachment(attachment, body[attachment.fileName]);
+			return persistAttachment(attachment);
 		}).filter(hash => {
 			return hash !== null	
 		});
@@ -167,10 +170,9 @@ function notifyClients(upload) {
 		client.send(JSON.stringify(upload))
 }
 
-function persistAttachment(attachment, content) {
-	const { checksum, fileName } = attachment;
+function persistAttachment(attachment) {
+	const { checksum, fileName, content } = attachment;
 
-	const buffer = Buffer.from(content, "base64");
 	const extension = extname(fileName).substr(1).toLowerCase();
 
 	if(extension.length < 2 || !allowedFormats[extension]) {
@@ -182,7 +184,7 @@ function persistAttachment(attachment, content) {
 
 	log("Writing attachment to %s", generatedFileName);
 	try {
-		writeFileSync(join(storagePath, generatedFileName), buffer);
+		writeFileSync(join(storagePath, generatedFileName), content);
 	} catch(e) {
 		log("There was an error writing file:", e);
 	}
