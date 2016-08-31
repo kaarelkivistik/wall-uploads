@@ -10,18 +10,6 @@ const cors = require("cors");
 const { Server: WebSocketServer } = require("ws");
 const mailin = require("mailin");
 
-/* Mailin */
-
-mailin.start({
-  port: 2500,
-  disableWebhook: true // Disable the webhook posting.
-});
-
-/* Event emitted after a message was received and parsed. */
-mailin.on('message', function (connection, data, content) {
-  persistUpload(data);
-});
-
 /* App configuration */
 
 const argv = require("minimist")(process.argv.slice(2));
@@ -35,7 +23,7 @@ const allowedFormats = {
 	webm: true
 };
 
-const { db: dbUrl = "mongodb://localhost/uploads", port = 80 } = argv;
+const { db: dbUrl = "mongodb://localhost/uploads", port = 80, smtpPort = 25 } = argv;
 
 let db, uploads, clients = new Set();
 
@@ -61,6 +49,17 @@ try {
 		process.exit(1);
 	}
 }
+
+/* Mailin */
+
+mailin.start({
+	port: smtpPort,
+	disableWebhook: true
+});
+
+mailin.on("message", function (connection, data, content) {
+	persistUpload(data).then(notifyClients, throwError);
+});
 
 /* WebSocketServer configuration */
 
