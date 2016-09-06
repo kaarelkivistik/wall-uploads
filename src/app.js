@@ -102,6 +102,8 @@ MongoClient.connect(dbUrl).then(result => {
 }, error => {
 	console.error("Unable to connect to %s", dbUrl);
 	console.error(error);
+
+	process.exit(1);
 });
 
 api.get("/", (req, res) => {
