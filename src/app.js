@@ -110,7 +110,7 @@ api.get("/", (req, res) => {
 	const { startingFrom: rawStartingFrom, limit: rawLimit } = req.query;
 
 	const startingFrom = rawStartingFrom ? new Date(rawStartingFrom) : undefined;
-	const limit = parseInt(rawLimit);
+	const limit = Math.min(parseInt(rawLimit) || 3, 36);
 
 	getUploads(startingFrom, limit).then(result => {
 		res.send(result);
@@ -158,7 +158,7 @@ function persistUpload(mail) {
 	});
 }
 
-function getUploads(startingFrom, limit = 3) {
+function getUploads(startingFrom, limit) {
 	let query = {};
 
 	if(startingFrom)
@@ -167,7 +167,7 @@ function getUploads(startingFrom, limit = 3) {
 		};
 
 	return new Promise((resolve, reject) => {
-		uploads.find(query).limit(limit).toArray().then(resolve, reject);
+		uploads.find(query).sort("timestamp", -1).limit(limit).toArray().then(resolve, reject);
 	});
 }
 
