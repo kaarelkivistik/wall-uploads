@@ -13,10 +13,9 @@
     "cors": "^2.7.1",
     "express": "^4.13.4",
     "express-busboy": "^2.5.0",
-    "mailin": "^3.0.3",
     "minimist": "^1.2.0",
     "mongodb": "^2.1.18",
-    "promise": "^7.1.1",
-    "ws": "^1.1.1"
+    "node-fetch": "^1.6.3",
+    "promise": "^7.1.1"
   }
 }
