@@ -6,8 +6,6 @@ const busboy = require("express-busboy");
 const cors = require("cors");
 const fetch = require("node-fetch");
 
-const { OAUTH_CLIENT_ID, OAUTH_BASE_URL, SELF_BASE_URL } = require("../config.json")
-
 const { AppError, exitOnSignal } = require("./util");
 const {
 	getTokenFor,
@@ -18,7 +16,12 @@ const {
 	getUploads,
 } = require("./service");
 
-const { port = 80 } = require("minimist")(process.argv.slice(2));
+const { 
+	port = "80",
+	oauthClientId, 
+	oauthBaseUrl, 
+	selfBaseUrl,
+} = require("minimist")(process.argv.slice(2));
 
 const server = createServer();
 const api = express();
@@ -60,7 +63,7 @@ server.listen(port);
 /* Routes */
 
 api.get("/authenticate", (req, res) => {
-	res.redirect(OAUTH_BASE_URL + "/authorize?client_id=" + OAUTH_CLIENT_ID + "&redirect_uri=" + SELF_BASE_URL + "/oauth/code&response_type=code&state=foobar")
+	res.redirect(oauthBaseUrl + "/authorize?client_id=" + oauthClientId + "&redirect_uri=" + selfBaseUrl + "/oauth/code&response_type=code&state=foobar")
 });
 
 api.get("/oauth/code", (req, res, next) => {
