@@ -21,6 +21,7 @@ const {
 	oauthClientId, 
 	oauthBaseUrl, 
 	selfBaseUrl,
+	oauthRedirectUrl
 } = require("minimist")(process.argv.slice(2));
 
 const server = createServer();
@@ -70,7 +71,10 @@ api.get("/oauth/code", (req, res, next) => {
 	const { code } = req.query;
 
 	getTokenFor(code).then(token => {
-		res.send({token});
+		if(oauthRedirectUrl)
+			res.redirect(oauthRedirectUrl + "?token=" + token);
+		else
+			res.send({token});
 	}, next);
 });
 
