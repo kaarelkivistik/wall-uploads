@@ -5,6 +5,7 @@ const express = require("express");
 const busboy = require("express-busboy");
 const cors = require("cors");
 const fetch = require("node-fetch");
+const crypto = require("crypto");
 
 const { AppError, exitOnSignal } = require("./util");
 const {
@@ -21,7 +22,6 @@ const {
 	oauthClientId, 
 	oauthBaseUrl, 
 	selfBaseUrl,
-	oauthRedirectUrl
 } = require("minimist")(process.argv.slice(2));
 
 const server = createServer();
@@ -63,16 +63,29 @@ server.listen(port);
 
 /* Routes */
 
+const redirectUrls = {}
+
 api.get("/authenticate", (req, res) => {
-	res.redirect(oauthBaseUrl + "/authorize?client_id=" + oauthClientId + "&redirect_uri=" + selfBaseUrl + "/oauth/code&response_type=code&state=foobar")
+	const { redirect_url: redirectUrl } = req.query;
+
+	const state = crypto.randomBytes(20).toString("hex");
+
+	redirectUrls[state] = redirectUrl;
+
+	res.redirect(oauthBaseUrl 
+		+ "/authorize?client_id=" + oauthClientId 
+		+ "&redirect_uri=" + selfBaseUrl + "/oauth/code&response_type=code" 
+		+ "&state=" + state)
 });
 
 api.get("/oauth/code", (req, res, next) => {
-	const { code } = req.query;
+	const { code, state } = req.query;
 
 	getTokenFor(code).then(token => {
-		if(oauthRedirectUrl)
-			res.redirect(oauthRedirectUrl + "?token=" + token);
+		const redirectUrl = redirectUrls[state]
+
+		if(redirectUrl)
+			res.redirect(redirectUrl + "?token=" + token);
 		else
 			res.send({token});
 	}, next);
